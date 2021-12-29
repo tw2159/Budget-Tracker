@@ -1,30 +1,39 @@
 let db;
+
+// establish a connection to the 'budget_tracker' IndexedDB database and set it to version 1
 const request = indexedDB.open('budget_tracker', 1);
 
+// this event is triggered when a database of a bigger version number than the existing stored database is loaded
 request.onupgradeneeded = function(event) {
   const db = event.target.result;
   db.createObjectStore('new_transaction', { autoIncrement: true });
 };
 
+// this event is fired when the result of a request is successfully returned
 request.onsuccess = function(event) {
   db = event.target.result;
 
+  // if the app is online, then execute the uploadTransaction() function to send all local db data to the api
   if (navigator.onLine) {
-    uploadBudget();
+    uploadTransaction();
   }
 };
 
+// this event is fired when a request returns an error
 request.onerror = function(event) {
+  // log error
   console.log(event.target.errorCode);
 };
 
+// save the record when there's no internet connection
 function saveRecord(record) {
   const transaction = db.transaction(['new_transaction'], 'readwrite');
   const budgetObjectStore = transaction.objectStore('new_transaction');
   budgetObjectStore.add(record);
 }
 
-function uploadBudget() {
+// upload the local records when there's an internet connection
+function uploadTransaction() {
   const transaction = db.transaction(['new_transaction'], 'readwrite');
   const budgetObjectStore = transaction.objectStore('new_transaction');
 
@@ -50,6 +59,8 @@ function uploadBudget() {
         const transaction = db.transaction(['new_transaction'], 'readwrite');
         const budgetObjectStore = transaction.objectStore('new_transaction');
         budgetObjectStore.clear();
+
+        alert('All saved transactions has been submitted!');
       })
       .catch(err => {
         console.log(err);
@@ -58,4 +69,5 @@ function uploadBudget() {
   }
 }
 
+// execute the uploadTransaction() function once the app is back online
 window.addEventListener('online', uploadTransaction);
